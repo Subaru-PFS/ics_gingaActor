@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 import logging
+import os
 from functools import partial
 
 from actorcore.Actor import Actor
@@ -16,7 +17,7 @@ class GingaActor(Actor):
 
         Actor.__init__(self, name,
                        productName=productName,
-                       configFile=configFile, modelNames=['ccd_%s' % cam for cam in cams])
+                       configFile=configFile, modelNames=['ccd_%s' % cam for cam in cams] +['sac'])
 
         host = 'localhost'
         port = 9000
@@ -25,6 +26,12 @@ class GingaActor(Actor):
         for cam in cams:
             self.models['ccd_%s' % cam].keyVarDict['filepath'].addCallback(partial(self.newFilepath, cam),
                                                                            callNow=False)
+        self.models['sac'].keyVarDict['filepath'].addCallback(self.sacFilepath, callNow=False)
+
+    def sacFilepath(self, keyvar):
+        filepath = keyvar.getValue()
+        absPath = os.path.join(*filepath)
+        self.loadHdu(absPath, chname='SAC')
 
     def newFilepath(self, cam, keyvar):
         filepath = keyvar.getValue()
