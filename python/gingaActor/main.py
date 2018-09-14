@@ -18,7 +18,7 @@ class GingaActor(Actor):
 
         Actor.__init__(self, name,
                        productName=productName,
-                       configFile=configFile, modelNames=['ccd_%s' % cam for cam in cams] + ['sac'])
+                       configFile=configFile, modelNames=['ccd_%s' % cam for cam in cams] + ['sac', 'drp'])
 
         host = 'localhost'
         port = 9000
@@ -33,6 +33,7 @@ class GingaActor(Actor):
                                                                            callNow=False)
 
         self.models['sac'].keyVarDict['filepath'].addCallback(self.sacFilepath, callNow=False)
+        self.models['drp'].keyVarDict['detrend'].addCallback(self.drpFilepath, callNow=False)
 
     def sacFilepath(self, keyvar):
         filepath = keyvar.getValue()
@@ -40,13 +41,19 @@ class GingaActor(Actor):
         self.loadHdu(absPath, chname='SAC')
 
     def ccdFilepath(self, cam, keyvar):
-        try:
-            [root, night, fname] = keyvar.getValue()
-        except ValueError:
-            return
 
-        filepath = "%s/pfs/%s/%s" % (root, night, fname)
+        [root, night, fname] = keyvar.getValue()
+
+        filepath = os.path.join(root, 'pfs', night, fname)
         self.loadHdu(filepath, chname='%s_RAW' % cam.upper())
+
+    def drpFilepath(self, keyvar):
+
+        filepath = keyvar.getValue()
+        folder, fname = os.path.split(filepath)
+        cam = fname[4:6]
+
+        self.loadHdu(filepath, chname='%s_DETREND' % cam.upper())
 
     def loadHdu(self, path, chname):
         channel = self.connectChannel(chname=chname)
