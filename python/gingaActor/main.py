@@ -7,25 +7,31 @@ from functools import partial
 from actorcore.Actor import Actor
 from astropy.io import fits
 from ginga.util import grc
+from twisted.internet import reactor
 
 
 class GingaActor(Actor):
     def __init__(self, name, productName=None, configFile=None, logLevel=30, cams=''):
         # This sets up the connections to/from the hub, the logger, and the twisted reactor.
         #
-        cams = cams.split(',')
+        cams = ['b1', 'r1']
 
         Actor.__init__(self, name,
                        productName=productName,
-                       configFile=configFile, modelNames=['ccd_%s' % cam for cam in cams] +['sac'])
+                       configFile=configFile, modelNames=['ccd_%s' % cam for cam in cams] + ['sac'])
 
         host = 'localhost'
         port = 9000
         self.gingaViewer = grc.RemoteClient(host, port)
 
+        reactor.callLater(5, partial(self.attachCallbacks, cams))
+
+    def attachCallbacks(self, cams):
+        self.logger.info('attaching callbacks cams=%s' % (','.join(cams)))
         for cam in cams:
-            self.models['ccd_%s' % cam].keyVarDict['filepath'].addCallback(partial(self.newFilepath, cam),
+            self.models['ccd_%s' % cam].keyVarDict['filepath'].addCallback(partial(self.ccdFilepath, cam),
                                                                            callNow=False)
+
         self.models['sac'].keyVarDict['filepath'].addCallback(self.sacFilepath, callNow=False)
 
     def sacFilepath(self, keyvar):
@@ -33,10 +39,14 @@ class GingaActor(Actor):
         absPath = os.path.join(*filepath)
         self.loadHdu(absPath, chname='SAC')
 
-    def newFilepath(self, cam, keyvar):
-        filepath = keyvar.getValue()
-        absPath = '/'.join([filepath[0], 'pfs', filepath[1], filepath[2]])
-        self.loadHdu(absPath, chname='%s_RAW' % cam.upper())
+    def ccdFilepath(self, cam, keyvar):
+        try:
+            [root, night, fname] = keyvar.getValue()
+        except ValueError:
+            return
+
+        filepath = "%s/pfs/%s/%s" % (root, night, fname)
+        self.loadHdu(filepath, chname='%s_RAW' % cam.upper())
 
     def loadHdu(self, path, chname):
         channel = self.connectChannel(chname=chname)
