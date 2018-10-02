@@ -51,7 +51,8 @@ class GingaActor(Actor):
 
         filepath = keyvar.getValue()
         folder, fname = os.path.split(filepath)
-        cam = fname[4:6]
+        fname, __ = fname.split('.fits')
+        cam = fname[-2:]
 
         self.loadHdu(filepath, chname='%s_DETREND' % cam.upper())
 
