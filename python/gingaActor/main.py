@@ -54,13 +54,14 @@ class GingaActor(Actor):
         fname, __ = fname.split('.fits')
         cam = fname[-2:]
 
-        self.loadHdu(filepath, chname='%s_DETREND' % cam.upper())
+        self.loadHdu(filepath, chname='%s_DETREND' % cam.upper(), hdu=1)
 
-    def loadHdu(self, path, chname):
+    def loadHdu(self, path, chname, hdu=0):
         channel = self.connectChannel(chname=chname)
         hdulist = fits.open(path, 'readonly')
-        channel.load_hdu(path[-17:], hdulist, 0)
-        self.logger.info('channel : %s loading fits from : %s hdu : %i', chname, path, 0)
+        filepath, fname = os.path.split(path)
+        channel.load_hdu(fname, hdulist, hdu)
+        self.logger.info('channel : %s loading fits from : %s hdu : %i', chname, path, hdu)
 
     def connectChannel(self, chname):
 
