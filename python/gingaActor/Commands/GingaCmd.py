@@ -27,5 +27,6 @@ class GingaCmd(object):
         cmd.finish('text="ok"')
 
     def status(self, cmd):
-        cmd.finish('text="ok"')
+        self.actor.sendVersionKey(cmd)
+        cmd.finish()
 
