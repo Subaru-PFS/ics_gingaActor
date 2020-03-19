@@ -44,7 +44,7 @@ class GingaActor(Actor):
 
         [root, night, fname] = keyvar.getValue()
 
-        filepath = os.path.join(root, 'pfs', night, fname)
+        filepath = os.path.join(root, night, fname)
         self.loadHdu(filepath, chname='%s_RAW' % cam.upper())
 
     def drpFilepath(self, keyvar):
