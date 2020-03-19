@@ -5,6 +5,7 @@ import os
 from functools import partial
 
 from actorcore.Actor import Actor
+from pfscore.spectroIds import getSite
 from astropy.io import fits
 from ginga.util import grc
 from twisted.internet import reactor
@@ -44,8 +45,8 @@ class GingaActor(Actor):
     def ccdFilepath(self, cam, keyvar):
 
         [root, night, fname] = keyvar.getValue()
-
-        filepath = os.path.join(root, night, fname)
+        args = [root, 'pfs', night, fname] if getSite()=='L' else [root, night, fname]
+        filepath = os.path.join(*args)
         self.loadHdu(filepath, chname='%s_RAW' % cam.upper())
 
     def drpFilepath(self, keyvar):
