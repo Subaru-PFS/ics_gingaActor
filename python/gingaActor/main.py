@@ -11,7 +11,7 @@ from twisted.internet import reactor
 
 
 class GingaActor(Actor):
-    host2name = {'PFS-WS1': 'gingaws1', 'PFS-WS2': 'gingaws1', 'cappy': 'gingacappy', 'pcp-pfs2': 'gingapcp2'}
+    host2name = {'PFS-WS1': 'gingaws1', 'PFS-WS2': 'gingaws2', 'cappy': 'gingacappy', 'pcp-pfs2': 'gingapcp2'}
 
     def __init__(self, name, productName=None, configFile=None, logLevel=30):
         # This sets up the connections to/from the hub, the logger, and the twisted reactor.
