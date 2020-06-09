@@ -2,19 +2,26 @@
 import argparse
 import logging
 import os
-from functools import partial
-
+import socket
 from actorcore.Actor import Actor
 from astropy.io import fits
+from functools import partial
 from ginga.util import grc
 from twisted.internet import reactor
 
 
 class GingaActor(Actor):
-    def __init__(self, name, productName=None, configFile=None, logLevel=30, cams=''):
+    host2name = {'PFS-WS1': 'gingaws1', 'PFS-WS2': 'gingaws1', 'cappy': 'gingacappy', 'pcp-pfs2': 'gingapcp2'}
+
+    def __init__(self, name, productName=None, configFile=None, logLevel=30):
         # This sets up the connections to/from the hub, the logger, and the twisted reactor.
         #
-        specIds = list(range(1,5))
+        try:
+            name = GingaActor.host2name(socket.gethostname())
+        except KeyError:
+            name = 'ginga'
+
+        specIds = list(range(1, 5))
         cams = [f'b{specId}' for specId in specIds] + [f'r{specId}' for specId in specIds]
 
         Actor.__init__(self, name,
@@ -83,17 +90,12 @@ def main():
                         help='configuration file to use')
     parser.add_argument('--logLevel', default=logging.INFO, type=int, nargs='?',
                         help='logging level')
-    parser.add_argument('--name', default='ginga', type=str, nargs='?',
-                        help='identity')
-    parser.add_argument('--cams', default='r1', type=str, nargs='?',
-                        help='cams')
     args = parser.parse_args()
 
-    theActor = GingaActor(args.name,
+    theActor = GingaActor('ginga',
                           productName='gingaActor',
                           configFile=args.config,
-                          logLevel=args.logLevel,
-                          cams=args.cams)
+                          logLevel=args.logLevel)
     theActor.run()
 
 
