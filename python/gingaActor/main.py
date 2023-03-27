@@ -3,15 +3,18 @@ import argparse
 import logging
 import os
 import socket
+from functools import partial
+
 from actorcore.Actor import Actor
 from astropy.io import fits
-from functools import partial
 from ginga.util import grc
+from ics.utils.sps.spectroIds import getSite
 from twisted.internet import reactor
 
 
 class GingaActor(Actor):
-    host2name = {'PFS-WS1': 'gingaws1', 'PFS-WS2': 'gingaws2', 'cappy': 'gingacappy', 'pcp-pfs2': 'gingapcp2', 'actors-ics': 'gingaactors'}
+    host2name = {'PFS-WS1': 'gingaws1', 'PFS-WS2': 'gingaws2', 'cappy': 'gingacappy', 'pcp-pfs2': 'gingapcp2',
+                 'actors-ics': 'gingaactors'}
 
     def __init__(self, name, productName=None, configFile=None, logLevel=30):
         # This sets up the connections to/from the hub, the logger, and the twisted reactor.
@@ -24,15 +27,24 @@ class GingaActor(Actor):
         specIds = list(range(1, 5))
         cams = [f'b{specId}' for specId in specIds] + [f'r{specId}' for specId in specIds]
 
+        self.site = getSite()
+
         Actor.__init__(self, name,
                        productName=productName,
                        configFile=configFile, modelNames=['ccd_%s' % cam for cam in cams] + ['sac', 'drp'])
 
-        host = 'localhost'
-        port = 9000
-        self.gingaViewer = grc.RemoteClient(host, port)
+        self.rcHost = 'localhost'
+        self.rcPort = None
+        self.gingaViewer = self.startViewer(rcPort=9000)
 
         reactor.callLater(5, partial(self.attachCallbacks, cams))
+
+    def startViewer(self, cmd=None, rcPort=None):
+        """"""
+        cmd = self.bcast if cmd is None else cmd
+        self.rcPort = rcPort if rcPort is not None else self.rcPort + 1
+        cmd.inform(f'text="starting RC server on {self.rcHost}:{self.rcPort}')
+        return grc.RemoteClient(self.rcHost, self.rcPort)
 
     def attachCallbacks(self, cams):
         self.logger.info('attaching callbacks cams=%s' % (','.join(cams)))
@@ -44,11 +56,18 @@ class GingaActor(Actor):
         self.models['drp'].keyVarDict['detrend'].addCallback(self.drpFilepath, callNow=False)
 
     def sacFilepath(self, keyvar):
+        # ignoring if not at LAM.
+        if self.site != 'L':
+            return
+
         filepath = keyvar.getValue()
         absPath = os.path.join(*filepath)
         self.loadHdu(absPath, chname='SAC')
 
     def ccdFilepath(self, cam, keyvar):
+        # ignoring if not at LAM.
+        if self.site != 'L':
+            return
 
         [root, night, fname] = keyvar.getValue()
         args = [root, night, 'sps', fname]

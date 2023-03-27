@@ -15,7 +15,8 @@ class GingaCmd(object):
         #
         self.vocab = [
             ('ping', '', self.ping),
-            ('status', '', self.status)
+            ('status', '', self.status),
+            ('RC', 'restart', self.restartRC)
         ]
 
         # Define typed command arguments for the above commands.
@@ -28,5 +29,10 @@ class GingaCmd(object):
 
     def status(self, cmd):
         self.actor.sendVersionKey(cmd)
+        cmd.inform(f'text="RC server on {self.actor.rcHost}:{self.actor.rcPort}')
         cmd.finish()
 
+    def restartRC(self, cmd):
+        """Restart Remote control server."""
+        self.actor.gingaViewer = self.actor.startViewer(cmd)
+        cmd.finish()
