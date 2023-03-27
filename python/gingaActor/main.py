@@ -8,6 +8,7 @@ from astropy.io import fits
 from functools import partial
 from ginga.util import grc
 from twisted.internet import reactor
+from ics.utils.sps.spectroIds import getSite
 
 
 class GingaActor(Actor):
@@ -23,6 +24,8 @@ class GingaActor(Actor):
 
         specIds = list(range(1, 5))
         cams = [f'b{specId}' for specId in specIds] + [f'r{specId}' for specId in specIds]
+
+        self.site = getSite()
 
         Actor.__init__(self, name,
                        productName=productName,
@@ -44,11 +47,18 @@ class GingaActor(Actor):
         self.models['drp'].keyVarDict['detrend'].addCallback(self.drpFilepath, callNow=False)
 
     def sacFilepath(self, keyvar):
+        # ignoring if not at LAM.
+        if self.site != 'L':
+            return
+
         filepath = keyvar.getValue()
         absPath = os.path.join(*filepath)
         self.loadHdu(absPath, chname='SAC')
 
     def ccdFilepath(self, cam, keyvar):
+        # ignoring if not at LAM.
+        if self.site != 'L':
+            return
 
         [root, night, fname] = keyvar.getValue()
         args = [root, night, 'sps', fname]
